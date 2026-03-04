@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FactoryMethodHiringSystem
+namespace HiringSystem
 {
     // ============================================================
     // 1. ПРОДУКТ (ИНТЕРФЕЙС СОТРУДНИКА)
