@@ -1,146 +1,220 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace OrderSystem
+namespace FactoryMethodHiringSystem
 {
-    // ==========================================
-    // 1. Продукт
-    // ==========================================
-    public interface IDelivery
+    // ============================================================
+    // 1. ПРОДУКТ (ИНТЕРФЕЙС СОТРУДНИКА)
+    // ============================================================
+    // Это общий тип для ВСЕХ сотрудников.
+    // Клиент будет работать только через этот интерфейс.
+    public interface IEmployee
     {
-        decimal CalculateCost(decimal weight);
-        int EstimateDays();
-        void Ship(string address);
+        string Name { get; }
+        int Experience { get; }
+        double BaseSalary { get; }
+
+        void Work();
+        double CalculateSalary();
+        void ShowInfo();
     }
 
-    // ==========================================
-    // 2. Конкретные продукты
-    // ==========================================
+    // ============================================================
+    // 2. БАЗОВЫЙ КЛАСС СОТРУДНИКА (общая логика)
+    // ============================================================
 
-    public class StandardDelivery : IDelivery
+    public abstract class EmployeeBase : IEmployee
     {
-        public decimal CalculateCost(decimal weight)
+        public string Name { get; protected set; }
+        public int Experience { get; protected set; }
+        public double BaseSalary { get; protected set; }
+
+        public EmployeeBase(string name, int experience, double baseSalary)
         {
-            return 5 + weight * 1.2m;
+            Name = name;
+            Experience = experience;
+            BaseSalary = baseSalary;
         }
 
-        public int EstimateDays() => 5;
+        // Каждый сотрудник работает по-разному
+        public abstract void Work();
 
-        public void Ship(string address)
+        // Общая формула расчёта зарплаты
+        public virtual double CalculateSalary()
         {
-            Console.WriteLine($"Standard delivery to {address}");
-        }
-    }
-
-    public class ExpressDelivery : IDelivery
-    {
-        public decimal CalculateCost(decimal weight)
-        {
-            return 15 + weight * 2.5m;
+            // За каждый год опыта +5%
+            double bonus = BaseSalary * 0.05 * Experience;
+            return BaseSalary + bonus;
         }
 
-        public int EstimateDays() => 2;
-
-        public void Ship(string address)
+        public virtual void ShowInfo()
         {
-            Console.WriteLine($"Express delivery to {address}");
-        }
-    }
-
-    public class PickupDelivery : IDelivery
-    {
-        public decimal CalculateCost(decimal weight)
-        {
-            return 0;
-        }
-
-        public int EstimateDays() => 1;
-
-        public void Ship(string address)
-        {
-            Console.WriteLine($"Order ready for pickup at {address}");
+            Console.WriteLine("-------------");
+            Console.WriteLine($"Name: {Name}");
+            Console.WriteLine($"Experience: {Experience} years");
+            Console.WriteLine($"Final Salary: {CalculateSalary()}$");
         }
     }
 
-    // ==========================================
-    // 3. Creator
-    // ==========================================
+    // ============================================================
+    // 3. КОНКРЕТНЫЕ ПРОДУКТЫ
+    // ============================================================
 
-    public abstract class OrderProcessor
+    public class Developer : EmployeeBase
     {
-        protected abstract IDelivery CreateDelivery();
-
-        public void ProcessOrder(string customer, string address, decimal weight)
+        public Developer(string name, int experience)
+            : base(name, experience, 4000)
         {
-            Console.WriteLine($"Processing order for {customer}");
+        }
 
-            IDelivery delivery = CreateDelivery();
+        public override void Work()
+        {
+            Console.WriteLine("Writing code and fixing bugs.");
+        }
 
-            decimal cost = delivery.CalculateCost(weight);
-            int days = delivery.EstimateDays();
-
-            Console.WriteLine($"Delivery cost: {cost}$");
-            Console.WriteLine($"Estimated delivery time: {days} days");
-
-            delivery.Ship(address);
-            Console.WriteLine("Order completed.\n");
+        public override double CalculateSalary()
+        {
+            // Разработчики получают доп. бонус 1000$
+            return base.CalculateSalary() + 1000;
         }
     }
 
-    // ==========================================
-    // 4. Конкретные создатели
-    // ==========================================
-
-    public class StandardOrderProcessor : OrderProcessor
+    public class Manager : EmployeeBase
     {
-        protected override IDelivery CreateDelivery()
+        public Manager(string name, int experience)
+            : base(name, experience, 5000)
         {
-            return new StandardDelivery();
+        }
+
+        public override void Work()
+        {
+            Console.WriteLine("Managing team and planning projects.");
+        }
+
+        public override double CalculateSalary()
+        {
+            // Менеджеры получают 10% премии
+            return base.CalculateSalary() * 1.10;
         }
     }
 
-    public class ExpressOrderProcessor : OrderProcessor
+    public class Designer : EmployeeBase
     {
-        protected override IDelivery CreateDelivery()
+        public Designer(string name, int experience)
+            : base(name, experience, 3500)
         {
-            return new ExpressDelivery();
+        }
+
+        public override void Work()
+        {
+            Console.WriteLine("Designing interfaces and prototypes.");
         }
     }
 
-    public class PickupOrderProcessor : OrderProcessor
+    // ============================================================
+    // 4. CREATOR (ОТДЕЛ НАЙМА)
+    // ============================================================
+    // ВАЖНО: здесь находится Factory Method
+
+    public abstract class HiringDepartment
     {
-        protected override IDelivery CreateDelivery()
+        protected List<IEmployee> employees = new List<IEmployee>();
+
+        // Factory Method
+        // Подклассы решают, какого сотрудника создать
+        protected abstract IEmployee CreateEmployee(string name, int experience);
+
+        // Общий алгоритм найма
+        public void Hire(string name, int experience)
         {
-            return new PickupDelivery();
+            Console.WriteLine("\nStarting hiring process...");
+
+            IEmployee employee = CreateEmployee(name, experience);
+
+            Console.WriteLine("Employee created.");
+            employee.ShowInfo();
+            employee.Work();
+
+            employees.Add(employee);
+
+            Console.WriteLine("Employee successfully hired!\n");
+        }
+
+        public void ShowAllEmployees()
+        {
+            Console.WriteLine("\n=== Company Employees ===");
+
+            foreach (var emp in employees)
+            {
+                emp.ShowInfo();
+            }
         }
     }
 
-    // ==========================================
-    // 5. Клиент
-    // ==========================================
+    // ============================================================
+    // 5. КОНКРЕТНЫЕ ОТДЕЛЫ (ПЕРЕОПРЕДЕЛЯЮТ FACTORY METHOD)
+    // ============================================================
+
+    public class DeveloperDepartment : HiringDepartment
+    {
+        protected override IEmployee CreateEmployee(string name, int experience)
+        {
+            return new Developer(name, experience);
+        }
+    }
+
+    public class ManagementDepartment : HiringDepartment
+    {
+        protected override IEmployee CreateEmployee(string name, int experience)
+        {
+            return new Manager(name, experience);
+        }
+    }
+
+    public class DesignDepartment : HiringDepartment
+    {
+        protected override IEmployee CreateEmployee(string name, int experience)
+        {
+            return new Designer(name, experience);
+        }
+    }
+
+    // ============================================================
+    // 6. MAIN
+    // ============================================================
 
     public class Program
     {
         public static void Main()
         {
-            Console.WriteLine("Choose delivery type:");
-            Console.WriteLine("1 - Standard");
-            Console.WriteLine("2 - Express");
-            Console.WriteLine("3 - Pickup");
-
-            string choice = Console.ReadLine();
-
-            OrderProcessor processor = choice switch
+            while (true)
             {
-                "1" => new StandardOrderProcessor(),
-                "2" => new ExpressOrderProcessor(),
-                "3" => new PickupOrderProcessor(),
-                _ => throw new Exception("Invalid choice")
-            };
+                Console.WriteLine("Enter employee name (or 'exit' for quit):");
+                string name = Console.ReadLine();
+                if (name.ToLower() == "exit") break;
 
-            processor.ProcessOrder("John Smith", "Main Street 12", 3.5m);
+                Console.WriteLine("Enter employee experience (in years):");
+                int experience = int.Parse(Console.ReadLine());
 
-            Console.ReadLine();
+                Console.WriteLine("Department:");
+                Console.WriteLine("1 - Developers");
+                Console.WriteLine("2 - Managers");
+                Console.WriteLine("3 - Designers");
+
+                string choice = Console.ReadLine();
+                HiringDepartment department;
+
+                if (choice == "1")
+                    department = new DeveloperDepartment();
+                else if (choice == "2")
+                    department = new ManagementDepartment();
+                else
+                    department = new DesignDepartment();
+
+                department.Hire(name, experience);
+            }
+
+            Console.WriteLine("Program finished.");
         }
     }
 }
